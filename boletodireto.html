@@ -1,0 +1,120 @@
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+		<title>GERADOR DE BOLETO TOP!!</title>
+	</head>
+	
+	<body>
+		<p class="retorno"></p>
+		<div class="data"></div>
+		<select id="format">
+			<option value="pdf">PDF</option>
+			<option value="html">HTML</option>
+		</select>
+		<button onclick="gerarBoleto();">Gerar boleto</button>
+	</body>
+
+	<script>
+
+		function gerarBoleto() {
+
+			var obj = JSON.stringify({
+				config: {
+					format: getFormat(),
+					layout: "NORMAL"
+				},
+				boletos: [
+					{
+						valor: "15,82",
+						vencimento: "17/10/2015",
+						banco: "237",
+						agencia: "123",
+						carteira: "09",
+						codBeneficiario: "4567",
+						nossoNumero: "25897"
+					}
+				]
+			});
+
+			$.ajax({
+			    type         : "POST",
+			    url          : "http://localhost:9999/v1/boleto/",
+			    data         : obj,
+        		dataType     : isPDF() ? 'binary' : 'text',
+			    success      : function (resp) {
+			    	$('.retorno').html("Sucesso!"); 
+
+			    	if (!isPDF()) {
+			    		$(".data").html(resp);
+			    	} else  {
+			    		downloadPDF(resp);
+			    	}
+
+			    },
+			    error       : function (req) {
+			    	console.log(req);
+			    	$('.retorno').html("Erro!");
+			    }
+			});
+		}
+
+		function getFormat() {
+			return $("#format").val();
+		}
+
+		function isPDF() {
+			return getFormat() == "pdf";
+		}
+		
+		function downloadPDF(data) { 
+			var blob = new Blob([data], { type: 'application/pdf' });
+       		var downloadUrl = URL.createObjectURL(blob);
+            var a = document.createElement("a");
+            a.href = downloadUrl;
+            a.download = "Boleto.pdf";
+            document.body.appendChild(a);
+            a.click();
+		}
+	</script>
+
+	<!-- BINARY DOWNLOAD HELPER -->
+	<script type="text/javascript">
+		$.ajaxTransport("+binary", function(options, originalOptions, jqXHR) {
+		    /* check for conditions and support for blob / arraybuffer response type */
+		    if (window.FormData && ((options.dataType && (options.dataType == 'binary')) || (options.data && ((window.ArrayBuffer && options.data instanceof ArrayBuffer) || (window.Blob && options.data instanceof Blob))))) {
+		        return {
+		            /* create new XMLHttpRequest */
+		            send: function(headers, callback) {
+		                /*  setup all variables */
+		                var xhr = new XMLHttpRequest();
+		                var url = options.url;
+		                var type = options.type;
+		                var async = options.async || true;
+		                /*  blob or arraybuffer. Default is blob */
+		                var dataType = options.responseType || "blob";
+		                var data = options.data || null;
+		                var username = options.username || null;
+		                var password = options.password || null;
+
+		                xhr.addEventListener('load', function() {
+		                    var data = {};
+		                    data[options.dataType] = xhr.response;
+		                    /*  make callback and send data */
+		                    callback(xhr.status, xhr.statusText, data, xhr.getAllResponseHeaders());
+		                });
+		                xhr.open(type, url, async, username, password);
+		                /*  setup custom headers */
+		                for (var i in headers) {
+		                    xhr.setRequestHeader(i, headers[i]);
+		                }
+		                xhr.responseType = dataType;
+		                xhr.send(data);
+		            },
+		            abort: function() {
+		                jqXHR.abort();
+		            }
+		        };
+		    }
+		});
+	</script>
+</html>
